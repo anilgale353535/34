@@ -89,7 +89,7 @@ export default function DailyReportPage() {
       
       // Seçili sütunlara göre veri hazırla
       const movementsData = response.movements.map(movement => {
-        const row: Record<string, any> = {};
+        const row: Record<string, unknown> = {};
         selectedColumns.forEach(col => {
           const column = AVAILABLE_COLUMNS[col];
           if (col === 'type') {

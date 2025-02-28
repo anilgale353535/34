@@ -29,7 +29,7 @@ export default function QuickStockModal({ barcode, onClose, onSuccess }: QuickSt
 
   useEffect(() => {
     fetchProduct();
-  }, [barcode]);
+  }, [barcode, fetchProduct]);
 
   const fetchProduct = async () => {
     try {

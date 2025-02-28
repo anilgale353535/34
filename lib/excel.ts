@@ -154,4 +154,16 @@ export async function parseExcelFile(file: File): Promise<ProductExcelRow[]> {
     }
     throw new Error('Excel dosyası işlenirken beklenmeyen bir hata oluştu');
   }
+}
+
+export function jsonToWorksheet(data: Record<string, unknown>[], options?: {
+  header?: string[];
+  dateFields?: string[];
+  numberFields?: string[];
+}) {
+  // ... existing code ...
+}
+
+export function worksheetToJson(worksheet: XLSX.WorkSheet): Record<string, unknown>[] {
+  // ... existing code ...
 } 

@@ -3,14 +3,25 @@ import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
 
+interface AuditLogFilters {
+  entityType?: string;
+  entityId?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ message: 'Yetkilendirme hatası' }, { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const searchParams = request.nextUrl.searchParams;
+    const url = new URL(request.url);
+    const filters: Record<string, unknown> = {};
+
+    const searchParams = url.searchParams;
     const entityType = searchParams.get('entityType');
     const action = searchParams.get('action');
     const startDate = searchParams.get('startDate');

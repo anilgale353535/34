@@ -53,9 +53,8 @@ interface StockMovementFormProps {
 export default function StockMovementForm({ open, onClose, onSuccess }: StockMovementFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [barcodeInput, setBarcodeInput] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<StockMovementFormData>();
   const watchType = watch('type');
@@ -95,7 +94,6 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
     }
 
     if (product) {
-      setSelectedProduct(product);
       setValue('productId', product.id);
       setBarcodeInput('');
       setError('');

@@ -69,6 +69,16 @@ const ProductList = forwardRef<{ loadProducts: () => Promise<void> }, ProductLis
     return <div className="text-red-500">{error}</div>;
   }
 
+  if (products.length === 0) {
+    return (
+      <div className="text-center">
+        <p className="mt-1 text-sm text-gray-500">
+          Ürün bulunamadı. Yeni bir ürün eklemek için &quot;Yeni Ürün&quot; butonunu kullanın.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <div className="flex justify-end mb-4">

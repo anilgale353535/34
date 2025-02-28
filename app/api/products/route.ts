@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, Prisma } from '@prisma/client';
 import { getUserFromRequest } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
 import { eventBus, EVENT_TYPES } from '@/lib/eventBus';
 import { prisma } from '@/lib/prisma';
-
-const prismaClient = new PrismaClient();
 
 // Tüm ürünleri getir
 export async function GET(request: Request) {
@@ -18,7 +15,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const products = await prismaClient.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         userId: user.id
       },
@@ -106,7 +103,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const existingProduct = await prismaClient.product.findFirst({
+      const existingProduct = await prisma.product.findFirst({
         where: { 
           barcode: formattedData.barcode,
           userId: user.id
@@ -143,7 +140,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const product = await prismaClient.product.create({
+    const product = await prisma.product.create({
       data: formattedData,
     });
 
@@ -190,7 +187,7 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     const { id, ...updateData } = data;
 
-    const product = await prismaClient.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data: updateData
     });
@@ -234,7 +231,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: 'ID parametresi gerekli' }, { status: 400 });
     }
 
-    const product = await prismaClient.product.delete({
+    const product = await prisma.product.delete({
       where: { id }
     });
 
