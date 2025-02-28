@@ -1,0 +1,43 @@
+Kanal İsmi İçin Öneriler:
+
+"Arada Kalan Nesil"
+"Modern Kaos"
+"Eşik İnsanları"
+"Dijital Limbo"
+"Yavaş Hareket"
+"Akışta Kaybolanlar"
+"Ortanca Çocuklar"
+"Dijital Araf"
+
+
+İçerik Kaynakları İçin Öneriler:
+
+Felsefi akımlar (özellikle Stoizm, Varoluşçuluk, Minimalizm)
+Modern psikoloji araştırmaları (özellikle akış teorisi, anlam arayışı)
+Sosyolojik analizler (dijital çağ, hız toplumu)
+Güncel yaşam ve teknoloji ilişkisi üzerine makaleler
+Chat GPT gibi yapay zeka araçlarıyla sentezlenmiş bilgiler
+
+
+Anonim Ses İçin Yaklaşım:
+
+Yapay zeka ile oluşturulmuş bir seslendirme kullanabilirsiniz (ElevenLabs, NaturalReader gibi)
+Görsel olarak kişisel bir avatar yerine soyut, minimalist görseller tercih edebilirsiniz
+İçeriklerde birinci şahıs yerine daha nötr bir anlatım kullanabilirsiniz
+
+
+Instagram İçin İçerik Stratejisi:
+
+YouTube videolarınızdan kısa kesitler
+Düşündürücü alıntılar ve minimal görseller
+İnfografikler ve veri görselleştirmeleri
+Takipçilere soru sorarak etkileşimi artırma
+
+
+Yapay Zeka Araçları Önerileri:
+
+Metin için: ChatGPT, Claude, Notion AI
+Görseller için: Midjourney, DALL-E, Stable Diffusion
+Ses için: ElevenLabs, Murf.ai, Play.ht
+Video/Animasyon için: Runway ML, D-ID, Synthesia
+Düzenleme için: Descript (otomatik altyazı ve düzenleme)

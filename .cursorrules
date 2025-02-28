@@ -1,0 +1,90 @@
+- adım adım geliştirme yap
+- her adımdan sonra soruların varsa sor.
+
+# Stok Takip Uygulaması Rules Dosyası
+
+## 1. Genel Prensip
+- **Basitlik**: Uygulama her şeyden önce BASIT olmalıdır. Karmaşık özellikler yerine temel ve anlaşılır bir arayüz tercih edilmelidir.
+- **Responsive Tasarım**: Uygulama mobil, tablet ve masaüstü cihazlarda sorunsuz çalışmalıdır.
+- **Online Çalışma**: Uygulama tamamen web tabanlı olmalıdır.
+
+## 2. Veritabanı
+- PostgreSQL kullanılacaktır.
+- Ana tablolar: Users, Products, StockMovements, Sales, Alerts
+- İlişkisel veritabanı modeli kullanılmalıdır.
+
+## 3. Temel Özellikler
+- **Ürün Yönetimi**: Ekleme, silme, güncelleme işlemleri.
+- **Stok Hareketleri**: Giriş ve çıkış kayıtları, stok seviyesi güncelleme.
+- **Uyarı Sistemi**: Minimum stok seviyesi belirleme ve uyarı gösterme.
+- **Satış Takibi**: Basit satış kaydı ve stoktan düşme.
+- **Raporlama**: Stok durumu, satış geçmişi, popüler ürünler raporları.
+
+## 4. Kullanıcı Arayüzü
+- Tek seviye kullanıcı yetkisi (admin/kullanıcı ayrımı yok).
+- Dashboard ana sayfa olarak kullanılmalıdır.
+- Menü yapısı:
+  - Dashboard
+  - Ürünler
+  - Stok Hareketleri
+  - Satışlar
+  - Raporlar
+  - Ayarlar
+
+## 5. Ürün Özellikleri
+- Her ürün için aşağıdaki bilgiler kaydedilmelidir:
+  - Ürün adı
+  - Barkod / SKU
+  - Kategori
+  - Birim fiyatı (alış ve satış)
+  - Mevcut stok miktarı
+  - Minimum stok seviyesi
+  - Birim (adet, kg, litre vb.)
+  - Açıklama (opsiyonel)
+  - Tedarikçi bilgisi (opsiyonel)
+
+## 6. Stok Hareketleri
+- Her stok hareketi için:
+  - Tarih ve saat
+  - Hareket türü (giriş/çıkış)
+  - Ürün bilgisi
+  - Miktar
+  - Açıklama (opsiyonel)
+  - İşlemi yapan (otomatik)
+
+## 7. Raporlama Sistemi
+- **Stok Raporu**: Mevcut stok durumu, kritik seviyedeki ürünler
+- **Satış Raporu**: Günlük, haftalık, aylık satış toplamları
+- **Ürün Performansı**: En çok ve en az satan ürünler
+- Tüm raporlar CSV ve PDF formatında dışa aktarılabilmelidir.
+
+## 8. Teknik Gereksinimler
+- Frontend: HTML, CSS, JavaScript (React veya Vue.js tercih edilebilir)
+- Backend: Node.js veya Python
+- Veritabanı: PostgreSQL
+- Deployment: Docker container desteği olmalı
+- Authentication: JWT tabanlı kimlik doğrulama
+
+## 9. Kapsam Dışı Özellikler
+- Muhasebe veya fatura entegrasyonu
+- Çoklu kullanıcı yetkilendirme sistemi
+- Kompleks analitik araçlar
+- Tedarikçi yönetim sistemi
+- E-ticaret entegrasyonu
+
+## 10. Performans Gereksinimleri
+- Sayfa yüklenme süresi 3 saniyeden az olmalı
+- Mobil cihazlarda 4G bağlantıda sorunsuz çalışmalı
+- 10.000 ürüne kadar performans sorunu yaşanmamalı
+
+## 11. Kullanıcı Deneyimi
+- Sade ve anlaşılır arayüz
+- Maksimum 3 tıklama ile herhangi bir işleme ulaşılabilmeli
+- Form alanları için otomatik tamamlama özellikleri
+- Hata mesajları açık ve yönlendirici olmalı
+- Arama ve filtreleme özellikleri kolay erişilebilir olmalı
+
+## 12. Güvenlik
+- Input validation tüm form alanları için uygulanmalı
+- SQL injection ve XSS koruması sağlanmalı
+- Basit ama güvenli authentication sistemi

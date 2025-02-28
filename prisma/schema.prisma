@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  username  String    @unique
+  password  String
+  name      String?
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  alerts    Alert[]
+  auditLogs AuditLog[]
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  name          String
+  barcode       String?         @unique
+  category      String
+  purchasePrice Float
+  sellingPrice  Float
+  currentStock  Float           @default(0)
+  minimumStock  Float           @default(0)
+  unit          String
+  description   String?
+  supplier      String?
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  movements     StockMovement[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  alerts        Alert[]
+
+  @@index([userId])
+}
+
+enum MovementType {
+  STOCK_IN        // Stok Girişi
+  STOCK_OUT       // Stok Çıkışı
+}
+
+model StockMovement {
+  id          String      @id @default(cuid())
+  type        MovementType
+  reason      String?
+  quantity    Float       // Int'ten Float'a değiştirildi
+  unitPrice   Float?      // Birim fiyat
+  totalPrice  Float?      // Toplam tutar
+  description String?
+  productId   String
+  product     Product     @relation(fields: [productId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([productId])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  message   String
+  isRead    Boolean  @default(false)
+  userId    String
+  productId String?
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // Yapılan işlem (CREATE, UPDATE, DELETE)
+  entityType  String   // İşlem yapılan model (Product, StockMovement, etc.)
+  entityId    String   // İşlem yapılan kaydın ID'si
+  userId      String   // İşlemi yapan kullanıcı
+  details     Json?    // Değişiklik detayları
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
