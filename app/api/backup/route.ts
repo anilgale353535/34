@@ -8,21 +8,69 @@ const gzip = promisify(createGzip);
 // Veri tiplerini tanımla
 type BackupDataType = 'user' | 'product' | 'stockMovement' | 'alert' | 'auditLog';
 
+// Her model için select tanımlamaları
+const selectFields = {
+  user: {
+    id: true,
+    email: true,
+    name: true,
+    createdAt: true,
+    updatedAt: true
+  },
+  product: {
+    id: true,
+    name: true,
+    sku: true,
+    category: true,
+    buyPrice: true,
+    sellPrice: true,
+    stock: true,
+    minStock: true,
+    unit: true,
+    description: true,
+    supplier: true,
+    createdAt: true,
+    updatedAt: true
+  },
+  stockMovement: {
+    id: true,
+    type: true,
+    quantity: true,
+    description: true,
+    productId: true,
+    createdAt: true,
+    updatedAt: true
+  },
+  alert: {
+    id: true,
+    type: true,
+    message: true,
+    productId: true,
+    isRead: true,
+    createdAt: true,
+    updatedAt: true
+  },
+  auditLog: {
+    id: true,
+    action: true,
+    details: true,
+    userId: true,
+    createdAt: true
+  }
+};
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Backup isteği alındı');
     
-    // Tüm headers'ı logla
     const requestHeaders = Object.fromEntries(request.headers.entries());
     console.log('Gelen headers:', requestHeaders);
     
-    // Environment variables'ı kontrol et
     console.log('Environment variables:', {
       hasBackupKey: !!process.env.BACKUP_API_KEY,
       backupKeyLength: process.env.BACKUP_API_KEY?.length
     });
 
-    // API key kontrolü
     const apiKey = request.headers.get('x-api-key');
     if (!process.env.BACKUP_API_KEY || apiKey !== process.env.BACKUP_API_KEY) {
       console.log('API Key kontrolü başarısız:', {
@@ -38,15 +86,13 @@ export async function GET(request: NextRequest) {
 
     console.log('API Key doğrulandı, veri çekiliyor...');
 
-    // İstenen veri tipini al ve doğrula
     const requestedType = request.nextUrl.searchParams.get('type');
     const page = parseInt(request.nextUrl.searchParams.get('page') || '1');
-    const pageSize = 1000; // Her sayfada 1000 kayıt
+    const pageSize = 100; // Sayfa boyutunu küçülttük
 
-    // Tip kontrolü
-    if (!requestedType || !['user', 'product', 'stockMovement', 'alert', 'auditLog'].includes(requestedType)) {
+    if (!requestedType || !Object.keys(selectFields).includes(requestedType)) {
       return NextResponse.json({
-        availableTypes: ['user', 'product', 'stockMovement', 'alert', 'auditLog'],
+        availableTypes: Object.keys(selectFields),
         message: 'Lütfen geçerli bir backup tipi belirtin: ?type=<tip>'
       });
     }
@@ -54,11 +100,10 @@ export async function GET(request: NextRequest) {
     const type = requestedType as BackupDataType;
     console.log(`${type} verisi için backup başlatılıyor...`);
 
-    // Toplam kayıt sayısını al
+    // @ts-expect-error - Prisma dynamic access
     const total = await prisma[type].count();
     const totalPages = Math.ceil(total / pageSize);
 
-    // Sayfa numarası kontrolü
     if (page > totalPages) {
       return NextResponse.json({
         error: 'Geçersiz sayfa numarası',
@@ -66,21 +111,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Verileri getir
     const skip = (page - 1) * pageSize;
+    // @ts-expect-error - Prisma dynamic access
     const data = await prisma[type].findMany({
       take: pageSize,
       skip,
-      orderBy: {
-        id: 'asc'
-      }
+      orderBy: { id: 'asc' },
+      select: selectFields[type]
     });
 
-    // Veriyi sıkıştır
     const jsonData = JSON.stringify(data);
-    const compressedBuffer = await gzip(Buffer.from(jsonData));
+    const gzipStream = createGzip();
+    const chunks: Buffer[] = [];
 
-    // Response headers
+    gzipStream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    gzipStream.write(jsonData);
+    gzipStream.end();
+
+    await new Promise((resolve) => gzipStream.on('end', resolve));
+    const compressedBuffer = Buffer.concat(chunks);
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup-${type}-${page}-of-${totalPages}-${timestamp}.json.gz`;
 
@@ -91,7 +141,7 @@ export async function GET(request: NextRequest) {
     responseHeaders.append('X-Current-Page', page.toString());
     responseHeaders.append('X-Total-Records', total.toString());
 
-    return new NextResponse(compressedBuffer, {
+    return new Response(compressedBuffer, {
       status: 200,
       headers: responseHeaders
     });
