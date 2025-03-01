@@ -5,14 +5,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { fetchApi, invalidateApiCache } from '@/lib/api';
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  currentStock: number;
-  barcode?: string;
-}
+import { UNITS, UnitType, getUnitLabel } from '@/lib/units';
 
 type MovementType = 'STOCK_IN' | 'STOCK_OUT';
 
@@ -52,10 +45,8 @@ interface StockMovementFormProps {
 
 export default function StockMovementForm({ open, onClose, onSuccess }: StockMovementFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [barcode, setBarcode] = useState('');
-  const [barcodeError, setBarcodeError] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<StockMovementFormData>();
@@ -67,7 +58,7 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
 
   const loadProducts = async () => {
     try {
-      const data = await fetchApi('/products', { useCache: false });
+      const data = await fetchApi('/products', { useCache: false }) as Product[];
       setProducts(data);
     } catch {
       setError('Ürünler yüklenirken bir hata oluştu');
@@ -84,14 +75,11 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
     if (!product) {
       // Cache'de yoksa API'den yeni veri al
       try {
-        setLoading(true);
-        const data = await fetchApi('/products', { useCache: false });
+        const data = await fetchApi('/products', { useCache: false }) as Product[];
         setProducts(data);
-        product = data.find((p: Product) => p.barcode === barcode.trim());
+        product = data.find((p) => p.barcode === barcode.trim());
       } catch {
         setError('Ürünler güncellenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -117,8 +105,9 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
 
   const onSubmit = async (data: StockMovementFormData) => {
     try {
-      setLoading(true);
+      setProcessing(true);
       setError('');
+
       await fetchApi('/stock-movements', {
         method: 'POST',
         data: {
@@ -136,12 +125,23 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Stok hareketi kaydedilirken bir hata oluştu');
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
   };
 
   const watchProductId = watch('productId');
   const selectedProductDetails = products.find(p => p.id === watchProductId);
+
+  // Barkod okuyucu için focus yönetimi
+  useEffect(() => {
+    const modalElement = document.querySelector('[data-modal="stock-movement"]');
+    if (modalElement) {
+      const barcodeInput = modalElement.querySelector('input[type="text"]') as HTMLInputElement;
+      if (barcodeInput) {
+        barcodeInput.focus();
+      }
+    }
+  }, [open]);
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -229,7 +229,7 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
                             <option value="">Ürün seçin</option>
                             {products.map((product) => (
                               <option key={product.id} value={product.id}>
-                                {product.name} (Stok: {product.currentStock} {product.unit})
+                                {product.name} (Stok: {product.currentStock} {getUnitLabel(product.unit)})
                               </option>
                             ))}
                           </select>
@@ -290,17 +290,37 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
                           <div className="relative mt-1 rounded-md shadow-sm">
                             <input
                               type="number"
-                              step="0.01"
+                              step={selectedProductDetails && !UNITS[selectedProductDetails.unit as keyof typeof UNITS]?.decimal ? "1" : "0.01"}
                               {...register('quantity', {
                                 required: 'Miktar zorunludur',
                                 min: { value: 0.01, message: 'Miktar 0\'dan büyük olmalıdır' },
+                                validate: (value) => {
+                                  if (!value) return 'Miktar zorunludur';
+                                  
+                                  // Sayısal değere çevir
+                                  const numValue = Number(value);
+                                  if (isNaN(numValue)) return 'Geçerli bir sayı giriniz';
+                                  
+                                  // Seçili ürün varsa birim kontrolü yap
+                                  if (selectedProductDetails) {
+                                    const unitType = selectedProductDetails.unit as keyof typeof UNITS;
+                                    if (!UNITS[unitType]?.decimal) {
+                                      // Tam sayı kontrolü için değeri 1000 ile çarpıp bölerek hassasiyet sorununu gider
+                                      const isInteger = Math.round(numValue * 1000) % 1000 === 0;
+                                      if (!isInteger) {
+                                        return `${getUnitLabel(selectedProductDetails.unit)} için sadece tam sayı girebilirsiniz`;
+                                      }
+                                    }
+                                  }
+                                  return true;
+                                }
                               })}
                               className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
                             />
                             {selectedProductDetails && (
                               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                                 <span className="text-gray-500 sm:text-sm">
-                                  {selectedProductDetails.unit}
+                                  {getUnitLabel(selectedProductDetails.unit)}
                                 </span>
                               </div>
                             )}
@@ -325,15 +345,16 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
                         <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                           <button
                             type="submit"
-                            disabled={loading}
+                            disabled={processing}
                             className="inline-flex w-full justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:col-start-2"
                           >
-                            {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                            {processing ? 'Kaydediliyor...' : 'Kaydet'}
                           </button>
                           <button
                             type="button"
                             className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
                             onClick={onClose}
+                            disabled={processing}
                           >
                             İptal
                           </button>

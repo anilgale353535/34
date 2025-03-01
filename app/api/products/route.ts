@@ -3,6 +3,8 @@ import { getUserFromRequest } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
 import { eventBus, EVENT_TYPES } from '@/lib/eventBus';
 import { prisma } from '@/lib/prisma';
+import { normalizeUnit } from '@/lib/units';
+import { Prisma } from '@prisma/client';
 
 // Tüm ürünleri getir
 export async function GET(request: Request) {
@@ -140,6 +142,18 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Birim kontrolü
+    const normalizedUnit = normalizeUnit(formattedData.unit);
+    if (!normalizedUnit) {
+      return NextResponse.json(
+        { message: `Geçersiz birim türü. Geçerli birimler: adet, kg, lt, mt, kutu, paket` },
+        { status: 400 }
+      );
+    }
+
+    // Normalize edilmiş birimi kullan
+    formattedData.unit = normalizedUnit;
 
     const product = await prisma.product.create({
       data: formattedData,

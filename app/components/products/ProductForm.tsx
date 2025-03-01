@@ -6,6 +6,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { fetchApi, invalidateApiCache } from '@/lib/api';
 import StockMovementHistory from './StockMovementHistory';
+import { UnitType, UNITS } from '@/lib/units';
 
 interface Product {
   id: string;
@@ -16,7 +17,7 @@ interface Product {
   sellingPrice: number;
   currentStock: number;
   minimumStock: number;
-  unit: string;
+  unit: UnitType;
   description?: string;
   supplier?: string;
 }
@@ -268,7 +269,7 @@ export default function ProductForm({ open, onClose, product, onSuccess }: Produ
                                   step="0.01"
                                   {...register('currentStock', {
                                     required: 'Mevcut stok zorunludur',
-                                    min: { value: 0, message: 'Mevcut stok 0\'dan küçük olamaz' },
+                                    min: { value: 0, message: 'Mevcut stok 0\'dan büyük olmalıdır' },
                                     valueAsNumber: true
                                   })}
                                   className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
@@ -287,7 +288,7 @@ export default function ProductForm({ open, onClose, product, onSuccess }: Produ
                                   step="0.01"
                                   {...register('minimumStock', {
                                     required: 'Minimum stok zorunludur',
-                                    min: { value: 0, message: 'Minimum stok 0\'dan küçük olamaz' },
+                                    min: { value: 0, message: 'Minimum stok 0\'dan büyük olmalıdır' },
                                     valueAsNumber: true
                                   })}
                                   className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
@@ -303,13 +304,14 @@ export default function ProductForm({ open, onClose, product, onSuccess }: Produ
                                 Birim *
                               </label>
                               <select
-                                {...register('unit', { required: 'Birim zorunludur' })}
+                                {...register('unit', { required: 'Birim seçimi zorunludur' })}
                                 className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                               >
-                                <option value="adet">Adet</option>
-                                <option value="kg">Kilogram</option>
-                                <option value="lt">Litre</option>
-                                <option value="mt">Metre</option>
+                                {Object.entries(UNITS).map(([value, { label }]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
                               </select>
                               {errors.unit && (
                                 <p className="mt-1 text-sm text-red-600">{errors.unit.message}</p>
