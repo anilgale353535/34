@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createGzip } from 'zlib';
+import { Readable } from 'stream';
+import { promisify } from 'util';
+
+const gzip = promisify(createGzip);
+
+// Veri tiplerini tanımla
+type BackupDataType = 'users' | 'products' | 'stockMovements' | 'alerts' | 'auditLogs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,29 +39,63 @@ export async function GET(request: NextRequest) {
 
     console.log('API Key doğrulandı, veri çekiliyor...');
 
-    // Tüm verileri çek
-    const data = {
-      users: await prisma.user.findMany(),
-      products: await prisma.product.findMany(),
-      stockMovements: await prisma.stockMovement.findMany(),
-      alerts: await prisma.alert.findMany(),
-      auditLogs: await prisma.auditLog.findMany()
-    };
+    // İstenen veri tipini al
+    const type = request.nextUrl.searchParams.get('type') as BackupDataType;
+    const page = parseInt(request.nextUrl.searchParams.get('page') || '1');
+    const pageSize = 1000; // Her sayfada 1000 kayıt
 
-    console.log('Veriler başarıyla çekildi');
+    // Eğer tip belirtilmemişse, mevcut tipleri listele
+    if (!type) {
+      return NextResponse.json({
+        availableTypes: ['users', 'products', 'stockMovements', 'alerts', 'auditLogs'],
+        message: 'Lütfen backup tipini belirtin: ?type=<tip>'
+      });
+    }
 
-    // JSON dosyası olarak gönder
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `backup-${timestamp}.json`;
+    console.log(`${type} verisi için backup başlatılıyor...`);
 
-    const responseHeaders = new Headers();
-    responseHeaders.set('Content-Type', 'application/json');
-    responseHeaders.set('Content-Disposition', `attachment; filename="${filename}"`);
+    // Toplam kayıt sayısını al
+    const total = await prisma[type].count();
+    const totalPages = Math.ceil(total / pageSize);
 
-    return new NextResponse(JSON.stringify(data, null, 2), {
-      status: 200,
-      headers: responseHeaders
+    // Sayfa numarası kontrolü
+    if (page > totalPages) {
+      return NextResponse.json({
+        error: 'Geçersiz sayfa numarası',
+        totalPages
+      });
+    }
+
+    // Verileri getir
+    const skip = (page - 1) * pageSize;
+    const data = await prisma[type].findMany({
+      take: pageSize,
+      skip,
+      orderBy: {
+        id: 'asc'
+      }
     });
+
+    // Veriyi sıkıştır
+    const jsonData = JSON.stringify(data);
+    const compressedData = await gzip(jsonData);
+
+    // Response headers
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `backup-${type}-${page}-of-${totalPages}-${timestamp}.json.gz`;
+
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/gzip');
+    headers.set('Content-Disposition', `attachment; filename="${filename}"`);
+    headers.set('X-Total-Pages', totalPages.toString());
+    headers.set('X-Current-Page', page.toString());
+    headers.set('X-Total-Records', total.toString());
+
+    return new NextResponse(compressedData, {
+      status: 200,
+      headers
+    });
+
   } catch (error) {
     console.error('Yedekleme hatası:', error);
     return NextResponse.json(
