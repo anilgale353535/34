@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 
-interface RequestContext {
-  params: {
-    id: string;
-  };
-}
-
 export async function PUT(
-  request: Request | NextRequest,
-  context: RequestContext
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getUserFromRequest(request as NextRequest);
+    const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
     }
 
     const alert = await prisma.alert.findUnique({
-      where: { id: context.params.id },
+      where: { id: params.id },
     });
 
     if (!alert) {
@@ -37,7 +31,7 @@ export async function PUT(
     }
 
     const updatedAlert = await prisma.alert.update({
-      where: { id: context.params.id },
+      where: { id: params.id },
       data: { isRead: true },
     });
 
