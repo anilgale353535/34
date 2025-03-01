@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
+type Props = {
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export async function PUT(
   request: NextRequest,
-  context: RouteParams
+  { params }: Props
 ) {
   try {
     const user = await getUserFromRequest(request);
@@ -19,7 +18,7 @@ export async function PUT(
     }
 
     const alert = await prisma.alert.findUnique({
-      where: { id: context.params.id },
+      where: { id: params.id },
     });
 
     if (!alert) {
@@ -37,7 +36,7 @@ export async function PUT(
     }
 
     const updatedAlert = await prisma.alert.update({
-      where: { id: context.params.id },
+      where: { id: params.id },
       data: { isRead: true },
     });
 
