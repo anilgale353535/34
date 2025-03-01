@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-
-const execAsync = promisify(exec);
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,47 +16,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Geçici dosya adı oluştur
+    // Tüm verileri çek
+    const data = {
+      users: await prisma.user.findMany(),
+      products: await prisma.product.findMany(),
+      stockMovements: await prisma.stockMovement.findMany(),
+      alerts: await prisma.alert.findMany(),
+      auditLogs: await prisma.auditLog.findMany()
+    };
+
+    // JSON dosyası olarak gönder
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `backup-${timestamp}.sql`;
-    const filepath = path.join('/tmp', filename);
+    const filename = `backup-${timestamp}.json`;
 
-    // pg_dump komutunu oluştur
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL bulunamadı');
-    }
-
-    // pg_dump ile yedek al
-    const { stderr } = await execAsync(`pg_dump ${databaseUrl} > ${filepath}`);
-    
-    if (stderr) {
-      console.error('Yedekleme hatası:', stderr);
-    }
-
-    // Dosyayı oku ve response olarak gönder
     const headers = new Headers();
-    headers.set('Content-Type', 'application/sql');
+    headers.set('Content-Type', 'application/json');
     headers.set('Content-Disposition', `attachment; filename="${filename}"`);
 
-    // Stream olarak dosyayı gönder
-    const response = new NextResponse(
-      new ReadableStream({
-        async start(controller) {
-          const buffer = await import('fs/promises').then(fs => fs.readFile(filepath));
-          controller.enqueue(buffer);
-          controller.close();
-          // Geçici dosyayı sil
-          await import('fs/promises').then(fs => fs.unlink(filepath));
-        }
-      }),
-      {
-        status: 200,
-        headers
-      }
-    );
-
-    return response;
+    return new NextResponse(JSON.stringify(data, null, 2), {
+      status: 200,
+      headers
+    });
   } catch (error) {
     console.error('Yedekleme hatası:', error);
     return NextResponse.json(
