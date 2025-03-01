@@ -62,8 +62,8 @@ export default function Home() {
     const loadDashboardData = async () => {
       try {
         const [statsData, criticalStocksData] = await Promise.all([
-          fetchApi('/dashboard/stats'),
-          fetchApi('/dashboard/critical-stocks')
+          fetchApi('/dashboard/stats', { useCache: false }),
+          fetchApi('/dashboard/critical-stocks', { useCache: false })
         ]);
         
         setStats(statsData);
@@ -77,6 +77,12 @@ export default function Home() {
     };
 
     loadDashboardData();
+
+    // Her 30 saniyede bir verileri güncelle
+    const interval = setInterval(loadDashboardData, 30000);
+
+    // Component unmount olduğunda interval'i temizle
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
