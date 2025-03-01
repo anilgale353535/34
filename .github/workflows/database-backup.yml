@@ -1,44 +1,15 @@
 name: Database Backup
 
 on:
+  workflow_dispatch:  # Manuel tetikleme için
   schedule:
     - cron: '0 0 * * *'  # Her gün gece yarısı
-  workflow_dispatch:  # Manuel tetikleme için
-
-permissions:
-  contents: write  # Repository içeriğini değiştirme izni
 
 jobs:
   backup:
-    runs-on: ubuntu-latest  # GitHub'ın ücretsiz runner'ı
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Tüm history'yi al
-
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Create backup directory
-        run: mkdir -p backups
-
-      - name: Create backup
-        run: |
-          BACKUP_FILE="backup-$(date +%Y%m%d_%H%M%S).sql"
-          pg_dump ${{ secrets.DATABASE_URL }} > backups/$BACKUP_FILE
-          gzip backups/$BACKUP_FILE
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Push to backup branch
-        run: |
-          git checkout -B backup
-          git add backups/
-          git commit -m "Backup $(date +%Y-%m-%d)" || echo "No changes to commit"
-          git push -f origin backup 
+      - uses: actions/checkout@v3
+      
+      - name: Test Connection
+        run: echo "Workflow çalışıyor!" 
