@@ -67,7 +67,7 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
 
   const loadProducts = async () => {
     try {
-      const data = await fetchApi('/products', { useCache: true, cacheTTL: 30000 }); // 30 saniye cache
+      const data = await fetchApi('/products', { useCache: false });
       setProducts(data);
     } catch {
       setError('Ürünler yüklenirken bir hata oluştu');

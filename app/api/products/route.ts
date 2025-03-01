@@ -16,19 +16,20 @@ export async function GET(request: Request) {
     }
 
     const products = await prisma.product.findMany({
-      where: {
-        userId: user.id
+      where: { 
+        userId: user.id,
+        isDeleted: false
       },
       orderBy: {
-        name: 'asc',
-      },
+        name: 'asc'
+      }
     });
 
     return NextResponse.json(products);
   } catch (error) {
-    console.error('Ürünler getirilirken hata:', error);
+    console.error('Ürünler listelenirken hata:', error);
     return NextResponse.json(
-      { message: 'Ürünler getirilirken bir hata oluştu' },
+      { message: 'Ürünler listelenirken bir hata oluştu' },
       { status: 500 }
     );
   }

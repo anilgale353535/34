@@ -2,7 +2,7 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { PencilIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, invalidateApiCache } from '@/lib/api';
 import ProductForm from './ProductForm';
 
 interface Product {
@@ -31,7 +31,7 @@ const ProductList = forwardRef<{ loadProducts: () => Promise<void> }, ProductLis
 
   const loadProducts = async () => {
     try {
-      const data = await fetchApi('/products');
+      const data = await fetchApi('/products', { useCache: false });
       setProducts(data);
     } catch {
       setError('Ürünler yüklenirken bir hata oluştu');
@@ -55,6 +55,7 @@ const ProductList = forwardRef<{ loadProducts: () => Promise<void> }, ProductLis
 
     try {
       await fetchApi(`/products/${id}`, { method: 'DELETE' });
+      invalidateApiCache('/products');
       setProducts(products.filter(p => p.id !== id));
     } catch {
       setError('Ürün silinirken bir hata oluştu');

@@ -44,6 +44,7 @@ model Product {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   alerts        Alert[]
+  isDeleted     Boolean         @default(false)
 
   @@index([userId])
 }

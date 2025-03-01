@@ -123,7 +123,8 @@ export async function DELETE(
     const existingProduct = await prisma.product.findFirst({
       where: { 
         id: params.id,
-        userId: user.id
+        userId: user.id,
+        isDeleted: false
       },
     });
 
@@ -143,8 +144,10 @@ export async function DELETE(
       details: { deletedProduct: existingProduct }
     });
 
-    await prisma.product.delete({
+    // Ürünü soft delete yap
+    await prisma.product.update({
       where: { id: params.id },
+      data: { isDeleted: true }
     });
 
     // Event'i tetikle

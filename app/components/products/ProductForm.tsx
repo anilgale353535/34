@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, invalidateApiCache } from '@/lib/api';
 import StockMovementHistory from './StockMovementHistory';
 
 interface Product {
@@ -71,6 +71,7 @@ export default function ProductForm({ open, onClose, product, onSuccess }: Produ
           data: data as unknown as Record<string, unknown>,
         });
       }
+      invalidateApiCache('/products');
       onSuccess?.();
       onClose();
     } catch (error) {
