@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { fetchApi } from '@/lib/api';
@@ -27,11 +27,7 @@ export default function QuickStockModal({ barcode, onClose, onSuccess }: QuickSt
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    fetchProduct();
-  }, [barcode, fetchProduct]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -45,7 +41,11 @@ export default function QuickStockModal({ barcode, onClose, onSuccess }: QuickSt
     } finally {
       setLoading(false);
     }
-  };
+  }, [barcode]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
 
   const handleQuantityChange = (value: string) => {
     const newValue = parseFloat(value);

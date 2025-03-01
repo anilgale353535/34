@@ -124,6 +124,19 @@ export async function POST(request: NextRequest) {
         data: { currentStock: product.currentStock - quantity },
       });
 
+      // Stok kritik seviyeye düştüyse alert oluştur
+      const newStockLevel = product.currentStock - quantity;
+      if (newStockLevel <= product.minimumStock) {
+        await tx.alert.create({
+          data: {
+            userId: user.id,
+            productId: product.id,
+            message: `${product.name} ürününün stok seviyesi kritik seviyeye düştü. Mevcut: ${newStockLevel} ${product.unit}, Minimum: ${product.minimumStock} ${product.unit}`,
+            isRead: false
+          }
+        });
+      }
+
       // Audit log oluştur
       await createAuditLog({
         action: 'CREATE',

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { PencilIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { fetchApi, invalidateApiCache } from '@/lib/api';
 import ProductForm from './ProductForm';
@@ -28,6 +28,32 @@ const ProductList = forwardRef<{ loadProducts: () => Promise<void> }, ProductLis
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'critical' | 'normal'>('all');
+
+  // Kategorileri hesapla
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(products.map(p => p.category)));
+    return uniqueCategories.sort();
+  }, [products]);
+
+  // Filtrelenmiş ürünleri hesapla
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        false;
+      
+      const matchesCategory = !selectedCategory || product.category === selectedCategory;
+      
+      const matchesStock = stockFilter === 'all' ||
+        (stockFilter === 'critical' && product.currentStock <= product.minimumStock) ||
+        (stockFilter === 'normal' && product.currentStock > product.minimumStock);
+
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+  }, [products, searchTerm, selectedCategory, stockFilter]);
 
   const loadProducts = async () => {
     try {
@@ -81,91 +107,147 @@ const ProductList = forwardRef<{ loadProducts: () => Promise<void> }, ProductLis
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex justify-end mb-4">
-        {onExport && (
-          <button
-            onClick={() => onExport(products)}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+    <div>
+      {/* Filtreler */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Arama */}
+        <div>
+          <input
+            type="text"
+            placeholder="Ürün adı veya barkod ile ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
+          />
+        </div>
+
+        {/* Kategori filtresi */}
+        <div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
           >
-            <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-            Excel'e Aktar
-          </button>
-        )}
+            <option value="">Tüm Kategoriler</option>
+            {categories.map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Stok durumu filtresi */}
+        <div>
+          <select
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value as 'all' | 'critical' | 'normal')}
+            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
+          >
+            <option value="all">Tüm Stok Durumları</option>
+            <option value="critical">Kritik Stok</option>
+            <option value="normal">Normal Stok</option>
+          </select>
+        </div>
       </div>
 
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Ürün Adı
-            </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Kategori
-            </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Stok
-            </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Satış Fiyatı
-            </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Durum
-            </th>
-            <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
-              İşlemler
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {products.map((product) => (
-            <tr key={product.id}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                <div className="text-sm text-gray-500">{product.barcode}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">{product.category}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {product.currentStock} {product.unit}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">₺{product.sellingPrice}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
-                    product.currentStock <= product.minimumStock
-                      ? 'text-red-800 bg-red-100'
-                      : 'text-green-800 bg-green-100'
-                  }`}
-                >
-                  {product.currentStock <= product.minimumStock ? 'Kritik Stok' : 'Normal'}
-                </span>
-              </td>
-              <td className="px-6 py-4 text-right whitespace-nowrap">
-                <button
-                  onClick={() => setEditingProduct(product)}
-                  className="inline-flex items-center px-2 py-1 text-sm text-indigo-600 hover:text-indigo-900"
-                >
-                  <PencilIcon className="w-4 h-4 mr-1" />
-                  Düzenle
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className="inline-flex items-center px-2 py-1 ml-2 text-sm text-red-600 hover:text-red-900"
-                >
-                  <TrashIcon className="w-4 h-4 mr-1" />
-                  Sil
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        {/* Excel export butonu */}
+        <div className="flex justify-end mb-4">
+          {onExport && (
+            <button
+              onClick={() => onExport(filteredProducts)}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+              Excel'e Aktar
+            </button>
+          )}
+        </div>
+
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-gray-500">Aranan kriterlere uygun ürün bulunamadı.</p>
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                  Ürün Adı
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                  Kategori
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                  Stok
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                  Fiyat
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  İşlemler
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredProducts.map((product) => {
+                const isStockCritical = product.currentStock <= product.minimumStock;
+                const stockClassName = isStockCritical ? 'text-red-600 font-medium' : 'text-gray-900';
+                
+                return (
+                  <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                      {product.barcode && (
+                        <div className="text-xs text-gray-500 mt-0.5">{product.barcode}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{product.category}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm ${stockClassName}`}>
+                        <span className="tabular-nums">{product.currentStock}</span>
+                        <span className="uppercase ml-1">{product.unit}</span>
+                      </div>
+                      {isStockCritical && (
+                        <div className="text-xs text-red-500 mt-0.5">
+                          Min: {product.minimumStock} {product.unit.toUpperCase()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="text-sm font-medium text-gray-900 tabular-nums">
+                        ₺{product.sellingPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5 tabular-nums">
+                        Alış: ₺{product.purchasePrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end items-center gap-3">
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="text-accent hover:text-accent-dark transition-colors"
+                          title="Düzenle"
+                        >
+                          <PencilIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Sil"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {editingProduct && (
         <ProductForm

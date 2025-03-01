@@ -132,6 +132,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Stok kritik seviyeye düştüyse alert oluştur
+    const newStockLevel = data.type === 'STOCK_IN'
+      ? product.currentStock + quantity
+      : product.currentStock - quantity;
+
+    if (newStockLevel <= product.minimumStock) {
+      await prisma.alert.create({
+        data: {
+          userId: user.id,
+          productId: product.id,
+          message: `${product.name} ürününün stok seviyesi kritik seviyeye düştü. Mevcut: ${newStockLevel} ${product.unit}, Minimum: ${product.minimumStock} ${product.unit}`,
+          isRead: false
+        }
+      });
+    }
+
     // Audit log oluştur
     await createAuditLog({
       action: 'CREATE',
