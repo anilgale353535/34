@@ -52,9 +52,11 @@ interface StockMovementFormProps {
 
 export default function StockMovementForm({ open, onClose, onSuccess }: StockMovementFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [barcodeError, setBarcodeError] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<StockMovementFormData>();
   const watchType = watch('type');
@@ -74,10 +76,10 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
 
   const handleBarcodeSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!barcodeInput.trim()) return;
+    if (!barcode.trim()) return;
 
     // Önce cache'den kontrol et
-    let product = products.find((p: Product) => p.barcode === barcodeInput.trim());
+    let product = products.find((p: Product) => p.barcode === barcode.trim());
     
     if (!product) {
       // Cache'de yoksa API'den yeni veri al
@@ -85,7 +87,7 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
         setLoading(true);
         const data = await fetchApi('/products', { useCache: false });
         setProducts(data);
-        product = data.find((p: Product) => p.barcode === barcodeInput.trim());
+        product = data.find((p: Product) => p.barcode === barcode.trim());
       } catch {
         setError('Ürünler güncellenirken bir hata oluştu');
       } finally {
@@ -95,7 +97,7 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
 
     if (product) {
       setValue('productId', product.id);
-      setBarcodeInput('');
+      setBarcode('');
       setError('');
     } else {
       setError('Ürün bulunamadı');
@@ -191,8 +193,8 @@ export default function StockMovementForm({ open, onClose, onSuccess }: StockMov
                         <div className="mt-1 flex rounded-md shadow-sm">
                           <input
                             type="text"
-                            value={barcodeInput}
-                            onChange={(e) => setBarcodeInput(e.target.value)}
+                            value={barcode}
+                            onChange={(e) => setBarcode(e.target.value)}
                             onKeyPress={handleBarcodeKeyPress}
                             onFocus={handleBarcodeFocus}
                             className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
