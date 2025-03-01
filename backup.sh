@@ -10,7 +10,7 @@ DATE=$(date +%Y%m%d)
 mkdir -p "$BACKUP_DIR/$DATE"
 
 # Veri tiplerini tanımla
-TYPES=("users" "products" "stockMovements" "alerts" "auditLogs")
+TYPES=("user" "product" "stockMovement" "alert" "auditLog")
 
 # Her veri tipi için backup al
 for type in "${TYPES[@]}"; do

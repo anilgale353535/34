@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createGzip } from 'zlib';
-import { Readable } from 'stream';
 import { promisify } from 'util';
 
 const gzip = promisify(createGzip);
 
 // Veri tiplerini tanımla
-type BackupDataType = 'users' | 'products' | 'stockMovements' | 'alerts' | 'auditLogs';
+type BackupDataType = 'user' | 'product' | 'stockMovement' | 'alert' | 'auditLog';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('Backup isteği alındı');
     
     // Tüm headers'ı logla
-    const headers = Object.fromEntries(request.headers.entries());
-    console.log('Gelen headers:', headers);
+    const requestHeaders = Object.fromEntries(request.headers.entries());
+    console.log('Gelen headers:', requestHeaders);
     
     // Environment variables'ı kontrol et
     console.log('Environment variables:', {
@@ -39,19 +38,20 @@ export async function GET(request: NextRequest) {
 
     console.log('API Key doğrulandı, veri çekiliyor...');
 
-    // İstenen veri tipini al
-    const type = request.nextUrl.searchParams.get('type') as BackupDataType;
+    // İstenen veri tipini al ve doğrula
+    const requestedType = request.nextUrl.searchParams.get('type');
     const page = parseInt(request.nextUrl.searchParams.get('page') || '1');
     const pageSize = 1000; // Her sayfada 1000 kayıt
 
-    // Eğer tip belirtilmemişse, mevcut tipleri listele
-    if (!type) {
+    // Tip kontrolü
+    if (!requestedType || !['user', 'product', 'stockMovement', 'alert', 'auditLog'].includes(requestedType)) {
       return NextResponse.json({
-        availableTypes: ['users', 'products', 'stockMovements', 'alerts', 'auditLogs'],
-        message: 'Lütfen backup tipini belirtin: ?type=<tip>'
+        availableTypes: ['user', 'product', 'stockMovement', 'alert', 'auditLog'],
+        message: 'Lütfen geçerli bir backup tipi belirtin: ?type=<tip>'
       });
     }
 
+    const type = requestedType as BackupDataType;
     console.log(`${type} verisi için backup başlatılıyor...`);
 
     // Toplam kayıt sayısını al
@@ -78,22 +78,22 @@ export async function GET(request: NextRequest) {
 
     // Veriyi sıkıştır
     const jsonData = JSON.stringify(data);
-    const compressedData = await gzip(jsonData);
+    const compressedBuffer = await gzip(Buffer.from(jsonData));
 
     // Response headers
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup-${type}-${page}-of-${totalPages}-${timestamp}.json.gz`;
 
-    const headers = new Headers();
-    headers.set('Content-Type', 'application/gzip');
-    headers.set('Content-Disposition', `attachment; filename="${filename}"`);
-    headers.set('X-Total-Pages', totalPages.toString());
-    headers.set('X-Current-Page', page.toString());
-    headers.set('X-Total-Records', total.toString());
+    const responseHeaders = new Headers();
+    responseHeaders.append('Content-Type', 'application/gzip');
+    responseHeaders.append('Content-Disposition', `attachment; filename="${filename}"`);
+    responseHeaders.append('X-Total-Pages', totalPages.toString());
+    responseHeaders.append('X-Current-Page', page.toString());
+    responseHeaders.append('X-Total-Records', total.toString());
 
-    return new NextResponse(compressedData, {
+    return new NextResponse(compressedBuffer, {
       status: 200,
-      headers
+      headers: responseHeaders
     });
 
   } catch (error) {
