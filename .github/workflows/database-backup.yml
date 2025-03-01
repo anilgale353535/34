@@ -1,0 +1,48 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Her gün gece yarısı
+  workflow_dispatch:  # Manuel tetikleme için
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create backup directory
+        run: mkdir -p backups
+
+      - name: Create backup
+        run: |
+          BACKUP_FILE="backup-$(date +%Y%m%d_%H%M%S).sql"
+          pg_dump $DATABASE_URL > backups/$BACKUP_FILE
+          gzip backups/$BACKUP_FILE
+
+      - name: Push to backup branch
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git checkout -b backup
+          git add backups/
+          git commit -m "Backup $(date +%Y-%m-%d)"
+          git push origin backup --force
+
+      - name: Cleanup old backups
+        run: |
+          cd backups
+          ls -t *.sql.gz | tail -n +6 | xargs -r rm
+          cd ..
+          git add backups/
+          git commit -m "Cleanup old backups" || echo "No cleanup needed"
+          git push origin backup --force 
