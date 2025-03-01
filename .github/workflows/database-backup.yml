@@ -5,15 +5,17 @@ on:
     - cron: '0 0 * * *'  # Her gün gece yarısı
   workflow_dispatch:  # Manuel tetikleme için
 
-env:
-  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+permissions:
+  contents: write  # Repository içeriğini değiştirme izni
 
 jobs:
   backup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # GitHub'ın ücretsiz runner'ı
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Tüm history'yi al
 
       - name: Install PostgreSQL client
         run: |
@@ -26,23 +28,17 @@ jobs:
       - name: Create backup
         run: |
           BACKUP_FILE="backup-$(date +%Y%m%d_%H%M%S).sql"
-          pg_dump $DATABASE_URL > backups/$BACKUP_FILE
+          pg_dump ${{ secrets.DATABASE_URL }} > backups/$BACKUP_FILE
           gzip backups/$BACKUP_FILE
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Push to backup branch
         run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git checkout -b backup
+          git checkout -B backup
           git add backups/
-          git commit -m "Backup $(date +%Y-%m-%d)"
-          git push origin backup --force
-
-      - name: Cleanup old backups
-        run: |
-          cd backups
-          ls -t *.sql.gz | tail -n +6 | xargs -r rm
-          cd ..
-          git add backups/
-          git commit -m "Cleanup old backups" || echo "No cleanup needed"
-          git push origin backup --force 
+          git commit -m "Backup $(date +%Y-%m-%d)" || echo "No changes to commit"
+          git push -f origin backup 
