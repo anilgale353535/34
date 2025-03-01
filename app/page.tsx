@@ -317,32 +317,42 @@ export default function Home() {
                     <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                       Ürün Adı
                     </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Mevcut Stok
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Minimum Stok
+                    <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
+                      Stok Durumu
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {criticalStocks.map((stock) => (
-                    <tr key={stock.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{stock.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {stock.currentStock} {stock.unit}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {stock.minimumStock} {stock.unit}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {criticalStocks.map((stock) => {
+                    const percentage = (stock.currentStock / stock.minimumStock) * 100;
+                    const isEqual = stock.currentStock === stock.minimumStock;
+                    const barColor = isEqual ? 'bg-blue-500' : 'bg-red-500';
+                    const textColor = isEqual ? 'text-blue-700' : 'text-red-700';
+                    const bgColor = isEqual ? 'hover:bg-blue-50' : 'hover:bg-red-50';
+                    
+                    return (
+                      <tr key={stock.id} className={`group relative transition-colors duration-300 ${bgColor}`}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{stock.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-xs font-medium">
+                            <span className={`${textColor}`}>
+                              {stock.currentStock} / {stock.minimumStock} {stock.unit}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="absolute bottom-0 inset-x-0 h-0.5 p-0">
+                          <div className="w-full bg-gray-100 h-0.5">
+                            <div
+                              className={`${barColor} h-0.5 transition-all duration-300`}
+                              style={{ width: `${Math.min(100, percentage)}%` }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
