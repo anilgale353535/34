@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile } from 'fs/promises';
 import path from 'path';
 
 const execAsync = promisify(exec);
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Yetkilendirme hatası' },
-        { status: 401 }
-      );
-    }
-
     // API key kontrolü
     const apiKey = request.headers.get('x-api-key');
     if (!process.env.BACKUP_API_KEY || apiKey !== process.env.BACKUP_API_KEY) {
+      console.log('API Key hatalı:', {
+        received: apiKey,
+        expected: process.env.BACKUP_API_KEY
+      });
       return NextResponse.json(
         { error: 'Geçersiz API anahtarı' },
         { status: 401 }
@@ -39,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // pg_dump ile yedek al
-    const { stdout, stderr } = await execAsync(`pg_dump ${databaseUrl} > ${filepath}`);
+    const { stderr } = await execAsync(`pg_dump ${databaseUrl} > ${filepath}`);
     
     if (stderr) {
       console.error('Yedekleme hatası:', stderr);
