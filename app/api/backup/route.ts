@@ -12,30 +12,35 @@ type BackupDataType = 'user' | 'product' | 'stockMovement' | 'alert' | 'auditLog
 const selectFields = {
   user: {
     id: true,
-    email: true,
+    username: true,
     name: true,
+    email: true,
     createdAt: true,
     updatedAt: true
   },
   product: {
     id: true,
     name: true,
-    sku: true,
+    barcode: true,
     category: true,
-    buyPrice: true,
-    sellPrice: true,
-    stock: true,
-    minStock: true,
+    purchasePrice: true,
+    sellingPrice: true,
+    currentStock: true,
+    minimumStock: true,
     unit: true,
     description: true,
     supplier: true,
     createdAt: true,
-    updatedAt: true
+    updatedAt: true,
+    userId: true
   },
   stockMovement: {
     id: true,
     type: true,
+    reason: true,
     quantity: true,
+    unitPrice: true,
+    totalPrice: true,
     description: true,
     productId: true,
     createdAt: true,
@@ -43,18 +48,19 @@ const selectFields = {
   },
   alert: {
     id: true,
-    type: true,
     message: true,
-    productId: true,
     isRead: true,
-    createdAt: true,
-    updatedAt: true
+    userId: true,
+    productId: true,
+    createdAt: true
   },
   auditLog: {
     id: true,
     action: true,
-    details: true,
+    entityType: true,
+    entityId: true,
     userId: true,
+    details: true,
     createdAt: true
   }
 };
